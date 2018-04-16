@@ -27,7 +27,7 @@ $.ajax({
 
 	var results = response.hits;
 	console.log(results.length);
-	for (i = 0; i < results.length; i++) {
+	for (i = 0; i < 5; i++) {
 		var intCalories = (results[i].recipe.calories)/(results[i].recipe.yield);
 		var calories = (Math.floor(intCalories));
 		var recipeDiv = $('<div>');
@@ -54,43 +54,89 @@ $.ajax({
 	var city = "";
 	var state = "";
 	var groceryChoice;
+	var groceryStoresArray = [];
+	var centerArray = [];
+	var positionArray = [];
+	var groceryNameArray = [];
+	var groceryInfoObject = {name:[], address:[], ID:[]};
+	var addressEdit = [];
+	var infoURL;
+	function groceryInfoURL(address) {
+		infoURL = "https://www.google.com/maps/dir/?api=1&destination=" + address + "&travelmode=walking"
+	}
+	console.log(infoURL);
 
 	$("#map").hide();
-
-	streetAddress = streetAddress.replace(/\s+/g, '');
-	//ADDRESS EXAMPLE: https://maps.googleapis.com/maps/api/place/textsearch/json?query=grocery+stores+in+streetnumber+streetname+ave+city+state&radius=1&key=AIzaSyC10w2038KqjWrYLulCTPIC3RNqTMd9g74
-	//https://maps.googleapis.com/maps/api/place/textsearch/json?query=grocery+stores+in+zipcode&radius=1&key=AIzaSyC10w2038KqjWrYLulCTPIC3RNqTMd9g74
 
 $(".zipbutton").on( "click", function() {
 	zipCode = $(".zipinput").val().trim();
 	$("#map").show();
+	groceryStoresArray = [];
+	centerArray = [];
+	positionArray = [];
+	// groceryInfoObject = {name:[], address:[], ID:[]};
 
 $.ajax({
-	url: 'https://maps.googleapis.com/maps/api/place/textsearch/json?query=grocery+stores+in+' + zipCode + '&radius=1&key=AIzaSyC10w2038KqjWrYLulCTPIC3RNqTMd9g74'
+	url: 'https://maps.googleapis.com/maps/api/place/textsearch/json?query=grocery+stores+in+' + zipCode + '&radius=1&key=AIzaSyDUlmVnnBzy1bSOLC3-fbhrhty_xFQSBA0'
 }).then(function(response) {
-	console.log(response);
-	console.log(response.results);
-	console.log(response.results[0].geometry.location);
-	groceryChoice = response.results[0].geometry.location;
-	
+
+for (i = 0; i < 9; i++){
+	var groceryChoice = response.results[i].geometry.location;
+	var groceryName = response.results[i].name;
+	console.log(response.results)
+	groceryInfoObject.name.push(groceryName);
+	var groceryAddress = response.results[i].formatted_address;
+	groceryInfoObject.address.push(groceryAddress);
+	console.log(groceryAddress);
+	addressEdit = groceryAddress.split(/[ ,]+/).join("+");
+	groceryInfoURL(addressEdit);
+	var groceryID = response.results[i].place_id;
+	groceryInfoObject.ID.push(groceryID);
+
+	var groceryString = JSON.stringify(groceryChoice);
+	var groceryStores = groceryString.replace(/"/g,'').replace(/lat/g, '').replace(':', '').replace(/lng/g, ' ').replace(/""/g, '').replace(/:/g, '').replace(/{/g, '').replace(/}/g, '');
+	groceryStoresArray.push(groceryStores)
+	var commaPos = groceryStores.indexOf(',');
+	var coordinatesLat = parseFloat(groceryStoresArray[i].substring(0, commaPos));
+	var coordinatesLong = parseFloat(groceryStoresArray[i].substring(commaPos + 1, groceryStoresArray[i].length));
+	var centerPoint = new google.maps.LatLng(coordinatesLat, coordinatesLong);
+	var position = new google.maps.LatLng(coordinatesLat, coordinatesLong);
+	centerArray.push(centerPoint);
+	positionArray.push(position);
+	initMap(positionArray, groceryInfoObject)
+	}
+})})
+
+function initMap(){
 var map;
 var infowindow;
 
-var groceryStore = groceryChoice;
-console.log(groceryStore);
-var mapOptions = {
-  zoom: 20,
-  center: groceryStore
+var map = new google.maps.Map(document.getElementById("map"), {
+  zoom: 13,
+  center: positionArray[0],
+  mapTypeId: google.maps.MapTypeId.ROADMAP
+});
+var infowindow = new google.maps.InfoWindow({});
+
+var marker, i;
+
+for (i = 0; i < positionArray.length; i++) {
+
+	marker = new google.maps.Marker({
+		position: positionArray[i],
+		map: map
+});
+
+google.maps.event.addListener(marker, 'click', (function (marker, i) {
+
+	for (i = 0; i < 9; i++) {
+
+	infowindow.setContent('<div><strong>' + groceryInfoObject.name[i] + '</strong><br>' +
+	  'Place ID: ' + groceryInfoObject.ID[i] + '<br>' +
+	  groceryInfoObject.address[i] + '</div>');
+	infowindow.open(map, this);
+	}}
+));
 }
-var map = new google.maps.Map(document.getElementById("map"), mapOptions);
-
-var marker = new google.maps.Marker({
-    position: groceryStore
-});
-
-// To add the marker to the map, call setMap();
-marker.setMap(map);
-
-});
-})
+}
 
