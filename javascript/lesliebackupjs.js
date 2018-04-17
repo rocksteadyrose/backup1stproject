@@ -74,7 +74,7 @@ $(".zipbutton").on( "click", function() {
 	groceryStoresArray = [];
 	centerArray = [];
 	positionArray = [];
-	// groceryInfoObject = {name:[], address:[], ID:[]};
+	groceryInfoObject = {name:[], address:[], ID:[]};
 
 $.ajax({
 	url: 'https://maps.googleapis.com/maps/api/place/textsearch/json?query=grocery+stores+in+' + zipCode + '&radius=1&key=AIzaSyDUlmVnnBzy1bSOLC3-fbhrhty_xFQSBA0'
@@ -104,6 +104,7 @@ for (i = 0; i < 9; i++){
 	centerArray.push(centerPoint);
 	positionArray.push(position);
 	initMap(positionArray, groceryInfoObject)
+	console.log(groceryInfoObject);
 	}
 })})
 
@@ -120,7 +121,7 @@ var infowindow = new google.maps.InfoWindow({});
 
 var marker, i;
 
-for (i = 0; i < positionArray.length; i++) {
+for (i = 0; i < 9; i++) {
 
 	marker = new google.maps.Marker({
 		position: positionArray[i],
@@ -128,15 +129,14 @@ for (i = 0; i < positionArray.length; i++) {
 });
 
 google.maps.event.addListener(marker, 'click', (function (marker, i) {
-
-	for (i = 0; i < 9; i++) {
-
+		return function () {
 	infowindow.setContent('<div><strong>' + groceryInfoObject.name[i] + '</strong><br>' +
 	  'Place ID: ' + groceryInfoObject.ID[i] + '<br>' +
 	  groceryInfoObject.address[i] + '</div>');
-	infowindow.open(map, this);
-	}}
-));
+	infowindow.open(map, marker);}
+}
+)(marker, i));
+	
 }
 }
 
